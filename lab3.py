@@ -3,7 +3,7 @@ import time
 import random
 
 # Create a Create2.
-port = "/dev/tty.usbserial-DN025ZAZ"  # where is your serial port?
+port = "/dev/tty.usbserial-DN02693O"  # where is your serial port?
 bot = Create2(port)
 
 # Start the Create 2
@@ -147,6 +147,51 @@ def driveUntilYouHitAWallOrTimePassed(speed, limitDistance):
             notTrue = False
             return "Distance"
 
+def driveUntilYouHitAWallOrTimePassedExtra(speed, limitDistance):
+    bot.drive_direct(speed, speed)
+    notTrue = True
+    distanceCounter = 0
+    while notTrue:
+        sensors = bot.get_sensors()
+        bump = sensors.light_bumper
+        distance = sensors.distance
+        if bump.front_left or bump.front_right:
+            bot.drive_stop()
+            notTrue = False
+            return ["Sensor", distanceCounter]
+        if bump.left or bump.center_left:
+            # print("Adjusting...")
+            bot.drive_stop()
+            turnRightUntilNoLeft(200)
+            bot.drive_direct(speed, speed)
+
+        distanceCounter += distance
+        if distanceCounter > limitDistance:
+            bot.drive_stop()
+            notTrue = False
+            return "Distance"
+
+def driveBackUntilTimePassed(speed, limitDistance):
+    bot.drive_direct(speed, speed)
+    notTrue = True
+    distanceCounter = 0
+    while notTrue:
+        sensors = bot.get_sensors()
+        bump = sensors.light_bumper
+        distance = sensors.distance
+
+        if bump.left or bump.center_left:
+            # print("Adjusting...")
+            bot.drive_stop()
+            turnRightUntilNoLeft(200)
+            bot.drive_direct(speed, speed)
+
+        distanceCounter = distanceCounter - distance
+        if distanceCounter > limitDistance:
+            bot.drive_stop()
+            notTrue = False
+            return "Distance"
+
 
 def driveUntilNoLeftWall(speed):
     bot.drive_direct(speed, speed)
@@ -181,6 +226,18 @@ def checkLeftSensor(speed, myTime):
     bot.drive_stop()
     return left
 
+def checkRightSensor(speed, myTime):
+    bot.drive_direct(-1*speed,speed)
+    time.sleep(myTime)
+    bot.drive_stop()
+    sensors = bot.get_sensors()
+    bump = sensors.light_bumper
+    right = bump.right
+    bot.drive_direct(speed,-1 * speed)
+    time.sleep(myTime)
+    bot.drive_stop()
+    return right
+
 def checkAllSensors():
     sensors = bot.get_sensors()
     bump = sensors.light_bumper
@@ -210,10 +267,16 @@ while True:
     if result in "Sensor":
         turnRight(100)
     if result in "Distance":
-        test = checkLeftSensor(100,.5)
-        if not test:
-            driveUntilYouHitAWallOrTimePassed(100, 200)
+        leftSens = checkLeftSensor(100,.5)
+        rightSens = checkRightSensor(100,.5)
+        if not leftSens:
+            driveUntilYouHitAWallOrTimePassed(100, 150)
             turnLeft(100)
+        #if not leftSens and not rightSens:
+            # Theoretical exit
+            # Bot is stopping rnadomly, bad sensors i guess
+            #  break
+
 
 
 bot.drive_stop()
