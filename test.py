@@ -40,7 +40,7 @@ def turnRight(speed):
             if counter == 5:
                 notTrue = False
                 bot.drive_stop()
-        print("L {} CL {} FL {}".format(bump.left, bump.center_left, bump.front_left))
+        #print("L {} CL {} FL {}".format(bump.left, bump.center_left, bump.front_left))
     return angle
 
 def turnLeft(speed):
@@ -125,6 +125,18 @@ def driveUntilYouHitAWall(speed):
             bot.drive_stop()
             notTrue = False
 
+
+def turnRightUntilNoLeft(speed):
+    bot.drive_direct(-1 * speed, speed)
+    noTrue= True
+    while noTrue:
+        sensors = bot.get_sensors()
+        bump = sensors.light_bumper
+        if not bump.left and not bump.center_left:
+            bot.drive_stop()
+            return
+
+
 def driveUntilYouHitAWallOrTimePassed(speed, limitDistance):
     bot.drive_direct(speed, speed)
     notTrue = True
@@ -133,10 +145,17 @@ def driveUntilYouHitAWallOrTimePassed(speed, limitDistance):
         sensors = bot.get_sensors()
         bump = sensors.light_bumper
         distance = sensors.distance
+        #print(bump.center_left)
         if bump.front_left or bump.front_right:
             bot.drive_stop()
             notTrue = False
             return "Sensor"
+        if bump.left or bump.center_left:
+            print("Yo waddup")
+            bot.drive_stop()
+            turnRightUntilNoLeft(200)
+            bot.drive_direct(speed, speed)
+
         distanceCounter += distance
         if distanceCounter > limitDistance:
             bot.drive_stop()
@@ -180,7 +199,7 @@ def checkLeftSensor(speed, myTime):
 def checkAllSensors():
     sensors = bot.get_sensors()
     bump = sensors.light_bumper
-    print("L {} R {} FR {} FL {}".format(bump.right, bump.left, bump.front_right, bump.front_left))
+    #print("L {} R {} FR {} FL {}".format(bump.right, bump.left, bump.front_right, bump.front_left))
     if bump.left and bump.right and (bump.front_left or bump.front_right):
         return True
     else:
@@ -212,7 +231,7 @@ while True:
     if result in "Distance":
         test = checkLeftSensor(100,.5)
         if not test:
-            driveUntilYouHitAWallOrTimePassed(100, 100)
+            driveUntilYouHitAWallOrTimePassed(100, 200)
             turnLeft(100)
 
     #print(test)

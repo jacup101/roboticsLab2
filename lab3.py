@@ -20,8 +20,7 @@ def turnRight(speed):
     while notTrue:
         time.sleep(.01)
         sensor = bot.get_sensors()
-        angle += sensor.angle #sensor.angle
-        #print(angle)
+        angle += sensor.angle
         bump = sensor.light_bumper
         if not bump.left and not bump.front_left and not bump.center_left and not somethingHappened:
             somethingHappened = True
@@ -33,7 +32,6 @@ def turnRight(speed):
             if counter == 5:
                 notTrue = False
                 bot.drive_stop()
-        # print("L {} CL {} FL {}".format(bump.left, bump.center_left, bump.front_left))
     return angle
 
 def turnLeft(speed):
@@ -45,20 +43,11 @@ def turnLeft(speed):
     while notTrue:
         time.sleep(.01)
         sensor = bot.get_sensors()
-        angle += sensor.angle #sensor.angle
-        #print(angle)
+        angle += sensor.angle
         bump = sensor.light_bumper
-        if not bump.right and not bump.front_right and not bump.center_right and not somethingHappened:
-            somethingHappened = True
-            counter = 0
-
-        if somethingHappened:
-            if not bump.left and not bump.front_left and not bump.center_left:
-                counter += 1
-            if counter == 5:
-                notTrue = False
-                bot.drive_stop()
-        # print("R {} CR {} FR {}".format(bump.right, bump.center_right, bump.front_right))
+        if bump.left:
+            notTrue = False
+            bot.drive_stop()
     return -1 * angle
 
 
@@ -123,6 +112,54 @@ def driveUntilYouHitAWall(speed):
             notTrue = False
 
 
+def turnRightUntilNoLeft(speed):
+    bot.drive_direct(-1 * speed, speed)
+    noTrue= True
+    while noTrue:
+        sensors = bot.get_sensors()
+        bump = sensors.light_bumper
+        if not bump.left and not bump.center_left:
+            bot.drive_stop()
+            return
+
+
+def driveUntilYouHitAWallOrTimePassed(speed, limitDistance):
+    bot.drive_direct(speed, speed)
+    notTrue = True
+    distanceCounter = 0
+    while notTrue:
+        sensors = bot.get_sensors()
+        bump = sensors.light_bumper
+        distance = sensors.distance
+        if bump.front_left or bump.front_right:
+            bot.drive_stop()
+            notTrue = False
+            return "Sensor"
+        if bump.left or bump.center_left:
+            # print("Adjusting...")
+            bot.drive_stop()
+            turnRightUntilNoLeft(200)
+            bot.drive_direct(speed, speed)
+
+        distanceCounter += distance
+        if distanceCounter > limitDistance:
+            bot.drive_stop()
+            notTrue = False
+            return "Distance"
+
+
+def driveUntilNoLeftWall(speed):
+    bot.drive_direct(speed, speed)
+    notTrue = True
+    while notTrue:
+        sensors = bot.get_sensors()
+        bump = sensors.light_bumper
+
+        if bump.left:
+            print(bump.left)
+        else:
+            notTrue = False
+
 def getSensorReadings():
     sensors = bot.get_sensors()
     bump = sensors.light_bumper
@@ -131,10 +168,22 @@ def getSensorReadings():
     else:
         return False
 
+
+def checkLeftSensor(speed, myTime):
+    bot.drive_direct(speed,-1 * speed)
+    time.sleep(myTime)
+    bot.drive_stop()
+    sensors = bot.get_sensors()
+    bump = sensors.light_bumper
+    left = bump.left
+    bot.drive_direct(-1 * speed,speed)
+    time.sleep(myTime)
+    bot.drive_stop()
+    return left
+
 def checkAllSensors():
     sensors = bot.get_sensors()
     bump = sensors.light_bumper
-    print("L {} R {} FR {} FL {}".format(bump.right, bump.left, bump.front_right, bump.front_left))
     if bump.left and bump.right and (bump.front_left or bump.front_right):
         return True
     else:
@@ -157,20 +206,14 @@ def printSensors(bot):
 
 angle = 0
 while True:
-    driveUntilYouHitAWall(200)
-    test = getSensorReadings()
-    doIEnd = checkAllSensors()
-    if doIEnd:
-        break
-
-    testAngle = turnLeftLimit(100,115)
-
-    if testAngle == 24567:
-        testAngle2 = turnRightLimit(100,225)
-        if testAngle2 == 24568:
-            # End Here, couldn't go anywhere except back
-            break
-
+    result = driveUntilYouHitAWallOrTimePassed(100, 100)
+    if result in "Sensor":
+        turnRight(100)
+    if result in "Distance":
+        test = checkLeftSensor(100,.5)
+        if not test:
+            driveUntilYouHitAWallOrTimePassed(100, 200)
+            turnLeft(100)
 
 
 bot.drive_stop()
